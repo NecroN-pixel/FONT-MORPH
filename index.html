@@ -117,10 +117,47 @@ h1 .c1{color:var(--a)}h1 .c2{color:var(--a2)}
 @keyframes fadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
 </head>
 <body>
 <div id="lbar"></div>
 <div class="orb o1"></div><div class="orb o2"></div>
+
+<!-- COPY MODAL -->
+<div id="copy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:950;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#0f0f1c;border:1px solid #2e2e50;border-radius:18px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:slideUp .22s cubic-bezier(.32,1.2,.5,1)">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid #23233d;display:flex;align-items:center;gap:10px">
+      <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;flex:1">Kopyala / İndir</span>
+      <button onclick="closeCopyModal()" style="background:none;border:1px solid #23233d;border-radius:6px;color:#52527a;font-size:13px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px">
+      <!-- Option 1: Unicode -->
+      <button onclick="doCopyUnicode()" style="display:flex;align-items:flex-start;gap:12px;padding:13px 15px;background:#161627;border:1px solid #23233d;border-radius:12px;cursor:pointer;text-align:left;transition:border-color .15s;width:100%" onmouseenter="this.style.borderColor='#8b5cf6'" onmouseleave="this.style.borderColor='#23233d'">
+        <div style="font-size:22px;line-height:1;margin-top:1px">𝓐</div>
+        <div>
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#e8e8f2;font-weight:700;margin-bottom:3px">Unicode Benzeri Kopyala</div>
+          <div style="font-family:'Space Mono',monospace;font-size:9px;color:#52527a;line-height:1.5">Her harf, görünümüne en yakın Unicode karakterine dönüştürülür. Instagram, Twitter, WhatsApp gibi her yere yapıştırılabilir.</div>
+        </div>
+      </button>
+      <!-- Option 2: Word -->
+      <button onclick="doDownloadWord()" style="display:flex;align-items:flex-start;gap:12px;padding:13px 15px;background:#161627;border:1px solid #23233d;border-radius:12px;cursor:pointer;text-align:left;transition:border-color .15s;width:100%" onmouseenter="this.style.borderColor='#22d3ee'" onmouseleave="this.style.borderColor='#23233d'">
+        <div style="font-size:22px;line-height:1;margin-top:1px">📄</div>
+        <div>
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#e8e8f2;font-weight:700;margin-bottom:3px">Word Dosyası İndir (.docx)</div>
+          <div style="font-family:'Space Mono',monospace;font-size:9px;color:#52527a;line-height:1.5">Her harf gerçek Google Fontu ile .docx olarak kaydedilir. Word, Google Docs veya LibreOffice'te açın.</div>
+        </div>
+      </button>
+      <!-- Option 3: Plain -->
+      <button onclick="doCopyPlain()" style="display:flex;align-items:center;gap:12px;padding:10px 15px;background:#161627;border:1px solid #23233d;border-radius:12px;cursor:pointer;text-align:left;transition:border-color .15s;width:100%" onmouseenter="this.style.borderColor='#52527a'" onmouseleave="this.style.borderColor='#23233d'">
+        <div style="font-size:18px;line-height:1">Aa</div>
+        <div>
+          <div style="font-family:'Space Mono',monospace;font-size:10px;color:#8888aa;font-weight:700">Düz Metin Kopyala</div>
+          <div style="font-family:'Space Mono',monospace;font-size:8px;color:#52527a">Normal ASCII metin, font bilgisi olmadan</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- FONT PICKER -->
 <div id="po">
@@ -190,11 +227,8 @@ h1 .c1{color:var(--a)}h1 .c2{color:var(--a2)}
   <div class="card" style="animation:fadeUp .5s .1s ease both">
     <div class="out-head">
       <div class="slabel" style="flex:1;margin-bottom:0">Sonuç — harfe tıkla → font değiştir</div>
-      <button class="btn" onclick="copyPlain()" style="padding:5px 11px;font-size:9px;flex-shrink:0" title="Düz ASCII metin kopyala">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Düz
-      </button>
-      <button class="btn btn-v" onclick="copyResult()" style="padding:5px 11px;font-size:9px;flex-shrink:0" title="Unicode stillerle kopyala">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>📋 Kopyala
+      <button class="btn btn-v" onclick="openCopyModal()" style="padding:5px 14px;font-size:9px;flex-shrink:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Kopyala / İndir
       </button>
     </div>
     <div id="outbox"><div class="ph">Yukarıya yazın…</div></div>
@@ -664,7 +698,8 @@ async function copyResult() {
     const esc = ch.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     spans += `<span style="font-family:'${font}',serif;font-size:28px">${esc}</span>`;
   }
-  const html = `<html><head><style>${imports}</style></head><body><p style="line-height:1.8">${spans}</p></body></html>`;
+  const html = `<html><head><style>${imports}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+</head><body><p style="line-height:1.8">${spans}</p></body></html>`;
   try {
     await navigator.clipboard.write([
       new ClipboardItem({
@@ -774,6 +809,95 @@ const FALLBACK_FONTS = [
 buildSymUI();
 loadFontList();
 
+// ─── COPY MODAL ───
+function openCopyModal() {
+  if (!inputText) { showToast('Önce bir şeyler yazın'); return; }
+  const m = document.getElementById('copy-modal');
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeCopyModal() {
+  document.getElementById('copy-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('copy-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('copy-modal')) closeCopyModal();
+});
+
+// Option 1: Unicode benzeri kopyala
+async function doCopyUnicode() {
+  closeCopyModal();
+  await copyResult(); // mevcut unicode fonksiyon
+}
+
+// Option 2: Word dosyası indir
+async function doDownloadWord() {
+  closeCopyModal();
+  showToast('⏳ Word dosyası hazırlanıyor…');
+  try {
+    const { Document, Packer, Paragraph, TextRun, AlignmentType } = window.docx;
+
+    // Her karakter için TextRun oluştur
+    const runs = [];
+    for (let i = 0; i < inputText.length; i++) {
+      const ch = inputText[i];
+      if (ch === '\n') {
+        // Yeni satır: mevcut paragraph'ı kapat, yeni başlat
+        // Bu basit yaklaşımda newline'ları boşlukla geç
+        runs.push(new TextRun({ text: '', break: 1 }));
+        continue;
+      }
+      const font = charFontMap[i] || 'Arial';
+      runs.push(new TextRun({
+        text: ch === ' ' ? '\u00A0' : ch,
+        font: font,
+        size: 48, // 24pt
+      }));
+    }
+
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+          }
+        },
+        children: [
+          new Paragraph({
+            children: runs,
+            alignment: AlignmentType.LEFT,
+            spacing: { line: 480 }, // çift satır aralığı
+          })
+        ]
+      }]
+    });
+
+    const buffer = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(buffer);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'FontMorph.docx';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✓ FontMorph.docx indirildi!');
+  } catch(e) {
+    console.error(e);
+    showToast('❌ Word oluşturma hatası: ' + e.message);
+  }
+}
+
+// Option 3: Düz metin
+async function doCopyPlain() {
+  closeCopyModal();
+  await copyPlain();
+}
+
+window.openCopyModal = openCopyModal;
+window.closeCopyModal = closeCopyModal;
+window.doCopyUnicode = doCopyUnicode;
+window.doDownloadWord = doDownloadWord;
+window.doCopyPlain   = doCopyPlain;
 window.copyPlain   = copyPlain;
 window.shuffleAll  = shuffleAll;
 window.clearAll    = clearAll;
