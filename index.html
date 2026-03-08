@@ -190,8 +190,11 @@ h1 .c1{color:var(--a)}h1 .c2{color:var(--a2)}
   <div class="card" style="animation:fadeUp .5s .1s ease both">
     <div class="out-head">
       <div class="slabel" style="flex:1;margin-bottom:0">Sonuç — harfe tıkla → font değiştir</div>
-      <button class="btn btn-v" onclick="copyResult()" style="padding:5px 11px;font-size:9px;flex-shrink:0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Kopyala
+      <button class="btn" onclick="copyPlain()" style="padding:5px 11px;font-size:9px;flex-shrink:0" title="Düz ASCII metin kopyala">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Düz
+      </button>
+      <button class="btn btn-v" onclick="copyResult()" style="padding:5px 11px;font-size:9px;flex-shrink:0" title="Unicode stillerle kopyala">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>𝓤nicode
       </button>
     </div>
     <div id="outbox"><div class="ph">Yukarıya yazın…</div></div>
@@ -511,18 +514,175 @@ function insertSym(sym) {
   showToast('"' + sym + '" eklendi');
 }
 
-// ─── KOPYALA ───
+// ─── UNICODE DÖNÜŞÜM SETLERİ ───
+// Her set: A-Z (65-90) ve a-z (97-122) için Unicode karşılıkları
+// Kopyalanınca da farklı görünen, platformdan bağımsız karakterler
+const UNICODE_STYLES = {
+  // Sıradan — dönüşüm yok
+  'normal': null,
+
+  // Matematiksel Bold
+  'bold': {
+    upper: '𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏𝐐𝐑𝐒𝐓𝐔𝐕𝐖𝐗𝐘𝐙',
+    lower: '𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳',
+    digits:'𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗'
+  },
+  // Matematiksel Italic
+  'italic': {
+    upper: '𝐴𝐵𝐶𝐷𝐸𝐹𝐺𝐻𝐼𝐽𝐾𝐿𝑀𝑁𝑂𝑃𝑄𝑅𝑆𝑇𝑈𝑉𝑊𝑋𝑌𝑍',
+    lower: '𝑎𝑏𝑐𝑑𝑒𝑓𝑔ℎ𝑖𝑗𝑘𝑙𝑚𝑛𝑜𝑝𝑞𝑟𝑠𝑡𝑢𝑣𝑤𝑥𝑦𝑧',
+    digits: null
+  },
+  // Bold Italic
+  'bold-italic': {
+    upper: '𝑨𝑩𝑪𝑫𝑬𝑭𝑮𝑯𝑰𝑱𝑲𝑳𝑴𝑵𝑶𝑷𝑸𝑹𝑺𝑻𝑼𝑽𝑾𝑿𝒀𝒁',
+    lower: '𝒂𝒃𝒄𝒅𝒆𝒇𝒈𝒉𝒊𝒋𝒌𝒍𝒎𝒏𝒐𝒑𝒒𝒓𝒔𝒕𝒖𝒗𝒘𝒙𝒚𝒛',
+    digits: null
+  },
+  // Script (El yazısı)
+  'script': {
+    upper: '𝒜ℬ𝒞𝒟ℰℱ𝒢ℋℐ𝒥𝒦ℒℳ𝒩𝒪𝒫𝒬ℛ𝒮𝒯𝒰𝒱𝒲𝒳𝒴𝒵',
+    lower: '𝒶𝒷𝒸𝒹ℯ𝒻ℊ𝒽𝒾𝒿𝓀𝓁𝓂𝓃ℴ𝓅𝓆𝓇𝓈𝓉𝓊𝓋𝓌𝓍𝓎𝓏',
+    digits: null
+  },
+  // Bold Script
+  'bold-script': {
+    upper: '𝓐𝓑𝓒𝓓𝓔𝓕𝓖𝓗𝓘𝓙𝓚𝓛𝓜𝓝𝓞𝓟𝓠𝓡𝓢𝓣𝓤𝓥𝓦𝓧𝓨𝓩',
+    lower: '𝓪𝓫𝓬𝓭𝓮𝓯𝓰𝓱𝓲𝓳𝓴𝓵𝓶𝓷𝓸𝓹𝓺𝓻𝓼𝓽𝓾𝓿𝔀𝔁𝔂𝔃',
+    digits: null
+  },
+  // Fraktur (Gotik)
+  'fraktur': {
+    upper: '𝔄𝔅ℭ𝔇𝔈𝔉𝔊ℌℑ𝔍𝔎𝔏𝔐𝔑𝔒𝔓𝔔ℜ𝔖𝔗𝔘𝔙𝔚𝔛𝔜ℨ',
+    lower: '𝔞𝔟𝔠𝔡𝔢𝔣𝔤𝔥𝔦𝔧𝔨𝔩𝔪𝔫𝔬𝔭𝔮𝔯𝔰𝔱𝔲𝔳𝔴𝔵𝔶𝔷',
+    digits: null
+  },
+  // Double-struck (Blackboard)
+  'double': {
+    upper: '𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ',
+    lower: '𝕒𝕓𝕔𝕕𝕖𝕗𝕘𝕙𝕚𝕛𝕜𝕝𝕞𝕟𝕠𝕡𝕢𝕣𝕤𝕥𝕦𝕧𝕨𝕩𝕪𝕫',
+    digits:'𝟘𝟙𝟚𝟛𝟜𝟝𝟞𝟟𝟠𝟡'
+  },
+  // Sans-serif
+  'sans': {
+    upper: '𝖠𝖡𝖢𝖣𝖤𝖥𝖦𝖧𝖨𝖩𝖪𝖫𝖬𝖭𝖮𝖯𝖰𝖱𝖲𝖳𝖴𝖵𝖶𝖷𝖸𝖹',
+    lower: '𝖺𝖻𝖼𝖽𝖾𝖿𝗀𝗁𝗂𝗃𝗄𝗅𝗆𝗇𝗈𝗉𝗊𝗋𝗌𝗍𝗎𝗏𝗐𝗑𝗒𝗓',
+    digits:'𝟢𝟣𝟤𝟥𝟦𝟧𝟨𝟩𝟪𝟫'
+  },
+  // Sans Bold
+  'sans-bold': {
+    upper: '𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭',
+    lower: '𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇',
+    digits:'𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵'
+  },
+  // Monospace
+  'mono': {
+    upper: '𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉',
+    lower: '𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣',
+    digits:'𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿'
+  },
+  // Circled
+  'circled': {
+    upper: 'ⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ',
+    lower: 'ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ',
+    digits:'⓪①②③④⑤⑥⑦⑧⑨'
+  },
+  // Fullwidth
+  'fullwidth': {
+    upper: 'ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ',
+    lower: 'ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ',
+    digits:'０１２３４５６７８９'
+  },
+  // Small Caps
+  'small-caps': {
+    upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    lower: 'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴩqʀꜱᴛᴜᴠᴡxʏᴢ',
+    digits: null
+  },
+  // Superscript
+  'super': {
+    upper: 'ᴬᴮᶜᴰᴱᶠᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾQᴿˢᵀᵁᵛᵂˣʸᶻ',
+    lower: 'ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖqʳˢᵗᵘᵛʷˣʸᶻ',
+    digits:'⁰¹²³⁴⁵⁶⁷⁸⁹'
+  },
+};
+
+// Her harf için unicode dönüşümü — font adına göre en uygun seti seç
+function fontToUnicodeStyle(fontFamily) {
+  const f = (fontFamily || '').toLowerCase();
+  if (!f || f === 'normal') return 'normal';
+  // Font adı bazlı eşleştirme
+  if (/bold.italic|italic.bold/i.test(f)) return 'bold-italic';
+  if (/bold.script|script.bold/i.test(f)) return 'bold-script';
+  if (/script|cursive|brush|calligraph|pacifico|sacramento|dancing|allura|cookie|tangerine|lobster|satisfy|kaushan/i.test(f)) return 'bold-script';
+  if (/fraktur|blackletter|gothic|gotisch|medievale|press.start|metal/i.test(f)) return 'fraktur';
+  if (/double|blackboard/i.test(f)) return 'double';
+  if (/mono|code|courier|source.code|jetbrains|inconsolata|consolas/i.test(f)) return 'mono';
+  if (/sans.bold|bold.sans/i.test(f)) return 'sans-bold';
+  if (/sans/i.test(f)) return 'sans';
+  if (/italic|slant/i.test(f)) return 'italic';
+  if (/bold|black|heavy|extra.bold|ultra/i.test(f)) return 'bold';
+  if (/small.cap|smallcap/i.test(f)) return 'small-caps';
+  if (/circle|round/i.test(f)) return 'circled';
+  // Rastgele ama tutarlı: font adının hash'i ile stil seç
+  const styles = ['bold','italic','bold-italic','script','bold-script','fraktur','double','sans','sans-bold','mono','circled','fullwidth','small-caps','super'];
+  let hash = 0;
+  for (let c of f) hash = (hash * 31 + c.charCodeAt(0)) & 0xFFFF;
+  return styles[hash % styles.length];
+}
+
+function convertChar(ch, styleName) {
+  if (!styleName || styleName === 'normal') return ch;
+  const style = UNICODE_STYLES[styleName];
+  if (!style) return ch;
+  const code = ch.charCodeAt(0);
+  if (code >= 65 && code <= 90) { // A-Z
+    return [...style.upper][code - 65] || ch;
+  }
+  if (code >= 97 && code <= 122) { // a-z
+    return [...style.lower][code - 97] || ch;
+  }
+  if (code >= 48 && code <= 57 && style.digits) { // 0-9
+    return [...style.digits][code - 48] || ch;
+  }
+  return ch;
+}
+
+// ─── KOPYALA — Unicode dönüşümlü ───
 async function copyResult() {
-  const text = document.getElementById('outbox').innerText;
-  if (!text || text.startsWith('Yukarıya')) return;
-  try { await navigator.clipboard.writeText(text); }
+  if (!inputText) return;
+  // Her karakteri, atandığı fonttaki Unicode stiline dönüştür
+  let result = '';
+  for (let i = 0; i < inputText.length; i++) {
+    const ch = inputText[i];
+    const font = charFontMap[i];
+    if (!font || ch === '\n' || ch === ' ') {
+      result += ch;
+    } else {
+      const styleName = fontToUnicodeStyle(font);
+      result += convertChar(ch, styleName);
+    }
+  }
+  try { await navigator.clipboard.writeText(result); }
   catch {
     const ta = document.createElement('textarea');
-    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+    ta.value = result; ta.style.cssText = 'position:fixed;opacity:0';
     document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); document.body.removeChild(ta);
   }
-  showToast('✓ Kopyalandı!');
+  showToast('✓ Unicode olarak kopyalandı!');
+}
+
+async function copyPlain() {
+  if (!inputText) return;
+  try { await navigator.clipboard.writeText(inputText); }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = inputText; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  }
+  showToast('✓ Düz metin kopyalandı');
 }
 
 function showToast(msg) {
@@ -593,6 +753,7 @@ const FALLBACK_FONTS = [
 buildSymUI();
 loadFontList();
 
+window.copyPlain   = copyPlain;
 window.shuffleAll  = shuffleAll;
 window.clearAll    = clearAll;
 window.copyResult  = copyResult;
