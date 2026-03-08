@@ -698,8 +698,7 @@ async function copyResult() {
     const esc = ch.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     spans += `<span style="font-family:'${font}',serif;font-size:28px">${esc}</span>`;
   }
-  const html = `<html><head><style>${imports}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
-</head><body><p style="line-height:1.8">${spans}</p></body></html>`;
+  const html = `<html><head><style>${imports}</style></head><body><p style="line-height:1.8">${spans}</p></body></html>`;
   try {
     await navigator.clipboard.write([
       new ClipboardItem({
